@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>考试练赛</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
@@ -813,6 +812,15 @@ function downloadTemplate() {
 }
 function importBank(e) {
   let f = e.target.files[0]; if (!f) return;
+  let ext = f.name.toLowerCase().split('.').pop();
+  if ((ext === 'xlsx' || ext === 'xls') && typeof XLSX === 'undefined') {
+    let s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+    s.onload = function() { importBank(e); };
+    s.onerror = function() { alert('网络不通，无法解析Excel。请使用JSON格式导入'); };
+    document.head.appendChild(s);
+    return;
+  }
   let name = f.name.toLowerCase();
   // Excel import
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
