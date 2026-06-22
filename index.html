@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -2300,6 +2300,15 @@ function typeName(t) { return { single: '单选题', multi: '多选题', judge: 
 function typeClass(t) { return { single: 'type-single', multi: 'type-multi', judge: 'type-judge', fill: 'type-fill', essay: 'type-essay' }[t] || ''; }
 function matchFill(user, answer) { if (!user || !answer) return 0; user = user.trim(); answer = answer.trim(); if (user === answer) return 1; let ks = answer.replace(/[，,、\s；;]+/g, ' ').split(' ').filter(k => k.length > 1); if (ks.length === 0) return user === answer ? 1 : 0; let hit = ks.filter(k => user.includes(k)).length; return hit / ks.length; }
 function arrEqual(a, b) { if (!a || !b) return false; if (a.length !== b.length) return false; let sa = [...a].sort(); let sb = [...b].sort(); return sa.every((v, i) => v === sb[i]); }
+function getBank() { let d = getData(KEYS.bank); if (!d.length) { d = DEFAULT_BANK; setData(KEYS.bank, d); } return d; }
+function saveBank(b) { setData(KEYS.bank, b); }
+function getWrongSet() { return getData(KEYS.wrong); }
+function addWrong(qid) { let w = getWrongSet(); if (!w.includes(qid)) { w.push(qid); setData(KEYS.wrong, w); } }
+function removeWrong(qid) { setData(KEYS.wrong, getWrongSet().filter(id => id !== qid)); }
+function getHistory() { return getData(KEYS.history); }
+function addHistory(h) { let hs = getHistory(); hs.unshift(h); if (hs.length > 100) hs.pop(); setData(KEYS.history, hs); }
+function clearHistory() { if (confirm('确认清除所有成绩记录？')) { setData(KEYS.history, []); render(); } }
+function clearWrongSet() { if (confirm('确认清除所有错题记录？')) { setData(KEYS.wrong, []); render(); } }
 
 // ==================== 渲染 ====================
 function $(sel) { return document.querySelector(sel); }
