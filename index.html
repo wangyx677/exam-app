@@ -2372,7 +2372,7 @@ function renderBank() {
     html += `<div class="card"><table class="q-list-table"><thead><tr><th>#</th><th>题型</th><th>章节</th><th>题干</th><th>答案</th><th>操作</th></tr></thead><tbody>`;
     bank.forEach((q, i) => {
       let ansStr = '';
-      if (q.type === 'single' || q.type === 'judge') ansStr = typeof q.answer === 'number' ? (q.options[q.answer] || '') : q.answer;
+      if (q.type === 'single') ansStr = 'ABCD'[q.answer] + '. ' + (q.options[q.answer] || ''); else if (q.type === 'judge') ansStr = typeof q.answer === 'number' ? (q.options[q.answer] || '') : q.answer;
       else if (q.type === 'multi') ansStr = Array.isArray(q.answer) ? q.answer.map(a => 'ABCD'[a]).join('+') : '';
       else ansStr = q.answer.length > 15 ? q.answer.substring(0, 15) + '...' : q.answer;
       html += `<tr><td>${i + 1}</td><td><span class="type-badge ${typeClass(q.type)}">${typeName(q.type)}</span></td><td>${q.chapter || ''}</td><td class="stem-cell" title="${escHtml(q.stem)}">${q.stem}</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(ansStr)}</td>`;
@@ -2437,10 +2437,10 @@ function renderPractice() {
       let cls = practiceAnswers.result ? 'correct' : 'wrong';
       let label = practiceAnswers.result ? '回答正确' : '回答错误';
       html += `<div class="feedback ${cls}"><strong>${label}</strong>`;
-      if (q.type === 'single' || q.type === 'judge') html += `<br>正确答案：${q.options[q.answer]}`;
+      if (q.type === 'single') html += `<br>正确答案：<b style='font-size:18px'>${'ABCD'[q.answer]}</b>. ${q.options[q.answer]}`; else if (q.type === 'judge') html += `<br>正确答案：${q.options[q.answer]}`;
       else if (q.type === 'multi') {
         let corrects = Array.isArray(q.answer) ? q.answer : [q.answer];
-        html += `<br>正确答案：${corrects.map(i => q.options[i]).join('；')}`;
+        html += `<br>正确答案：${corrects.map(i => '<b>' + 'ABCD'[i] + '</b>. ' + q.options[i]).join('  ')}`;
         html += `<br>你的选择：${practiceAnswers.selectedMulti && practiceAnswers.selectedMulti.length ? practiceAnswers.selectedMulti.map(i => q.options[i]).join('；') : '(未选择)'}`;
       } else { html += `<br>你的答案：${escHtml(practiceAnswers.userText || '(空)')}<br>参考答案：${q.answer}`; }
       if (q.analysis) html += `<br>解析：${q.analysis}`;
@@ -2653,10 +2653,10 @@ function reviewExam() {
     let icon = d.correct ? '&#x2705;' : '&#x274C;';
     let cls = d.correct ? 'correct' : 'wrong';
     html += `<div class="feedback ${cls}" style="margin-bottom:12px"><strong>${icon} 第${i + 1}题 [${typeName(q.type)}]</strong> ${q.stem}`;
-    if (q.type === 'single' || q.type === 'judge') html += `<br>正确答案：${q.options[q.answer]}`;
+    if (q.type === 'single') html += `<br>正确答案：<b style='font-size:18px'>${'ABCD'[q.answer]}</b>. ${q.options[q.answer]}`; else if (q.type === 'judge') html += `<br>正确答案：${q.options[q.answer]}`;
     else if (q.type === 'multi') {
       let corrects = Array.isArray(q.answer) ? q.answer : [q.answer];
-      html += `<br>正确答案：${corrects.map(idx => q.options[idx]).join('；')}`;
+      html += `<br>正确答案：${corrects.map(idx => '<b>' + 'ABCD'[idx] + '</b>. ' + q.options[idx]).join('  ')}`;
       html += `<br>你的选择：${d.multi && d.multi.length ? d.multi.map(idx => q.options[idx]).join('；') : '(未选择)'}`;
     } else html += `<br>你的答案：${escHtml(d.text || '(空)')}<br>参考答案：${q.answer}`;
     if (q.analysis) html += `<br>&#x1F4D6; 解析：${q.analysis}`;
