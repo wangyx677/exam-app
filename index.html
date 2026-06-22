@@ -2494,9 +2494,20 @@ function renderExam() {
 }
 function renderExamSetup() {
   let history = getHistory();
+  let bank = getBank();
+  let types = { single: '单选题', multi: '多选题', judge: '判断题', fill: '填空题', essay: '问答题' };
+  let counts = {};
+  for (let t of Object.keys(types)) counts[t] = bank.filter(q => q.type === t).length;
+
   let html = `<div class="card"><h3>模拟考试设置</h3>
-    <div class="form-group"><label>题目数量</label><input type="number" id="examCount" value="${examSetting.count}" min="5" max="100"></div>
-    <div class="form-group"><label>考试时间（分钟）</label><input type="number" id="examTime" value="${examSetting.time}" min="5" max="180"></div>
+    <p style="font-size:13px;color:#888;margin-bottom:12px">填写每题型的出题数量，留空或填0表示不出该题型</p>`;
+  for (let [t, label] of Object.entries(types)) {
+    let defVal = examSetting.types && examSetting.types[t] !== undefined ? examSetting.types[t] : (counts[t] > 0 ? Math.min(5, counts[t]) : 0);
+    html += `<div class="form-group"><label>${label}（题库${counts[t]}题）</label>
+      <input type="number" id="examType_${t}" value="${defVal}" min="0" max="${counts[t]}" placeholder="0">
+    </div>`;
+  }
+  html += `<div class="form-group"><label>考试时间（分钟）</label><input type="number" id="examTime" value="${examSetting.time}" min="5" max="180"></div>
     <button class="btn btn-primary" onclick="startExam()">开始考试</button>
   </div>`;
 
@@ -2515,10 +2526,29 @@ function renderExamSetup() {
   $('#app').innerHTML = html;
 }
 function startExam() {
-  let cnt = parseInt($('#examCount').value) || 20; let t = parseInt($('#examTime').value) || 30;
-  examSetting = { count: cnt, time: t };
-  let bank = getBank(); if (bank.length < cnt) cnt = bank.length;
-  examQuestions = shuffle(bank).slice(0, cnt);
+  let t = parseInt($('#examTime').value) || 30;
+  let typeCounts = {};
+  for (let type of ['single', 'multi', 'judge', 'fill', 'essay']) {
+    let v = parseInt($('#examType_' + type)?.value) || 0;
+    if (v > 0) typeCounts[type] = v;
+  }
+  if (Object.keys(typeCounts).length === 0) { alert('请至少选择一种题型并设置数量'); return; }
+  examSetting = { types: typeCounts, time: t };
+
+  let bank = getBank();
+  let byType = {};
+  for (let q of bank) {
+    if (!byType[q.type]) byType[q.type] = [];
+    byType[q.type].push(q);
+  }
+
+  let questions = [];
+  for (let [type, cnt] of Object.entries(typeCounts)) {
+    let pool = byType[type] || [];
+    if (pool.length < cnt) cnt = pool.length;
+    questions.push(...shuffle(pool).slice(0, cnt));
+  }
+  examQuestions = shuffle(questions);
   examAnswers = {}; examIdx = 0; examStartTime = Date.now();
   let totalSec = t * 60;
   examTimerInterval = setInterval(() => { let elapsed = Math.floor((Date.now() - examStartTime) / 1000); let left = totalSec - elapsed; if (left <= 0) { submitExam(); return; } let el = $('#examTimer'); if (el) { el.textContent = fmtDuration(left * 1000); if (left < 300) el.classList.add('warning'); } }, 1000);
