@@ -131,7 +131,8 @@ textarea.fill-input{min-height:100px}
 
 <script>
 // ==================== 数据管理 ====================
-const KEYS = { bank: 'exam_bank', wrong: 'exam_wrong', history: 'exam_history' };
+const KEYS = { bank: 'exam_bank', wrong: 'exam_wrong', history: 'exam_history', version: 'bank_version' };
+const BANK_VERSION = 2;
 
 function getData(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
 function setData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
@@ -2300,7 +2301,7 @@ function typeName(t) { return { single: '单选题', multi: '多选题', judge: 
 function typeClass(t) { return { single: 'type-single', multi: 'type-multi', judge: 'type-judge', fill: 'type-fill', essay: 'type-essay' }[t] || ''; }
 function matchFill(user, answer) { if (!user || !answer) return 0; user = user.trim(); answer = answer.trim(); if (user === answer) return 1; let ks = answer.replace(/[，,、\s；;]+/g, ' ').split(' ').filter(k => k.length > 1); if (ks.length === 0) return user === answer ? 1 : 0; let hit = ks.filter(k => user.includes(k)).length; return hit / ks.length; }
 function arrEqual(a, b) { if (!a || !b) return false; if (a.length !== b.length) return false; let sa = [...a].sort(); let sb = [...b].sort(); return sa.every((v, i) => v === sb[i]); }
-function getBank() { let d = getData(KEYS.bank); if (!d.length) { d = DEFAULT_BANK; setData(KEYS.bank, d); } return d; }
+function getBank() { let storedVer = parseInt(localStorage.getItem(KEYS.version)) || 0; if (storedVer !== BANK_VERSION) { localStorage.removeItem(KEYS.bank); localStorage.setItem(KEYS.version, BANK_VERSION); } let d = getData(KEYS.bank); if (!d.length) { d = DEFAULT_BANK; setData(KEYS.bank, d); } return d; }
 function saveBank(b) { setData(KEYS.bank, b); }
 function getWrongSet() { return getData(KEYS.wrong); }
 function addWrong(qid) { let w = getWrongSet(); if (!w.includes(qid)) { w.push(qid); setData(KEYS.wrong, w); } }
