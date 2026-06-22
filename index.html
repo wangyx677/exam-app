@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考试练赛</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#764ba2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="考试练赛">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px 0;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+.header h1{font-size:28px;margin-bottom:5px}
+.header p{font-size:14px;opacity:0.85}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e8e8e8;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,0.06);overflow-x:auto}
+.tab{flex:1;text-align:center;padding:14px 6px;cursor:pointer;font-size:14px;font-weight:600;color:#888;border-bottom:3px solid transparent;transition:all 0.2s;user-select:none;white-space:nowrap;min-width:70px}
+.tab:hover{color:#764ba2;background:#fafafa}
+.tab.active{color:#764ba2;border-bottom-color:#764ba2}
+.container{max-width:960px;margin:0 auto;padding:20px 16px}
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar button,.btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s}
+.btn-primary{background:#764ba2;color:#fff}
+.btn-primary:hover{background:#5a3a7e}
+.btn-outline{background:#fff;color:#764ba2;border:2px solid #764ba2}
+.btn-outline:hover{background:#f5f0fa}
+.btn-sm{padding:6px 14px;font-size:13px}
+.btn-danger{background:#e74c3c;color:#fff}
+.btn-danger:hover{background:#c0392b}
+.btn-success{background:#27ae60;color:#fff}
+.btn-orange{background:#e67e22;color:#fff}
+.btn-orange:hover{background:#d35400}
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+.filter-bar label{font-size:14px;color:#666;display:flex;align-items:center;gap:4px;cursor:pointer}
+.card{background:#fff;border-radius:12px;padding:24px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.q-title{font-size:16px;font-weight:700;color:#333;margin-bottom:16px;line-height:1.6}
+.q-meta{font-size:12px;color:#999;margin-bottom:12px}
+.options{margin:12px 0}
+.opt{display:block;padding:12px 16px;margin:6px 0;border:2px solid #e8e8e8;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:15px}
+.opt:hover{border-color:#764ba2;background:#faf8ff}
+.opt.selected{border-color:#764ba2;background:#f0e8ff;font-weight:600}
+.opt.multi-partial{border-color:#e67e22;background:#fef5ec}
+.opt.correct{border-color:#27ae60;background:#e8f8ef;color:#27ae60}
+.opt.wrong{border-color:#e74c3c;background:#fde8e8;color:#e74c3c}
+.opt.answer-reveal{border-color:#2980b9;background:#eaf4fc;color:#2980b9}
+.fill-input{width:100%;padding:12px;border:2px solid #e8e8e8;border-radius:8px;font-size:15px;font-family:inherit;resize:none;transition:border 0.2s}
+.fill-input:focus{border-color:#764ba2;outline:none}
+textarea.fill-input{min-height:100px}
+.feedback{padding:16px;border-radius:8px;margin-top:12px;font-size:14px;line-height:1.6}
+.feedback.correct{background:#e8f8ef;border-left:4px solid #27ae60}
+.feedback.wrong{background:#fde8e8;border-left:4px solid #e74c3c}
+.feedback.info{background:#eaf4fc;border-left:4px solid #2980b9}
+.exam-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#fff;border-radius:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);flex-wrap:wrap;gap:10px}
+.exam-timer{font-size:22px;font-weight:700;color:#764ba2}
+.exam-timer.warning{color:#e74c3c;animation:blink 0.5s infinite alternate}
+@keyframes blink{from{opacity:1}to{opacity:0.3}}
+.grid{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0}
+.grid-item{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;border:2px solid #e8e8e8;background:#fff;transition:all 0.15s}
+.grid-item.current{border-color:#764ba2;background:#f0e8ff}
+.grid-item.answered{background:#d4edda;border-color:#28a745}
+.grid-item:hover{border-color:#764ba2}
+.score-card{text-align:center;padding:32px 20px}
+.score-num{font-size:72px;font-weight:800;color:#764ba2}
+.score-label{font-size:16px;color:#888;margin:8px 0}
+.score-detail{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:24px 0}
+.score-box{background:#f8f9fa;border-radius:10px;padding:16px 24px;text-align:center;min-width:100px}
+.score-box .val{font-size:28px;font-weight:700;color:#333}
+.score-box .lbl{font-size:12px;color:#888;margin-top:4px}
+.q-list-table{width:100%;border-collapse:collapse;font-size:14px}
+.q-list-table th{background:#f8f9fa;padding:10px;text-align:left;border-bottom:2px solid #e8e8e8;font-size:13px;color:#666}
+.q-list-table td{padding:10px;border-bottom:1px solid #eee}
+.q-list-table tr:hover{background:#fafafa}
+.stem-cell{max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.type-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.type-single{background:#eaf4fc;color:#2980b9}
+.type-multi{background:#fef5ec;color:#e67e22}
+.type-judge{background:#e8f8ef;color:#27ae60}
+.type-fill{background:#f0e8ff;color:#764ba2}
+.type-essay{background:#fde8e8;color:#c0392b}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{background:#fff;border-radius:16px;padding:24px;width:90%;max-width:700px;max-height:85vh;overflow-y:auto}
+.modal h3{margin-bottom:16px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;color:#666;margin-bottom:4px;font-weight:600}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:inherit}
+.form-group textarea{min-height:80px;resize:vertical}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#764ba2;outline:none}
+.form-group .hint{font-size:12px;color:#999;margin-top:2px}
+.empty-state{text-align:center;padding:60px 20px;color:#aaa}
+.empty-state .icon{font-size:64px;margin-bottom:12px}
+.import-area{width:100%;min-height:120px;padding:12px;border:2px dashed #ddd;border-radius:8px;font-size:13px;font-family:monospace;resize:vertical}
+.hidden{display:none !important}
+.history-row{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;flex-wrap:wrap;gap:8px}
+.history-row:last-child{border-bottom:none}
+.history-row:hover{background:#fafafa}
+.wrong-card{cursor:pointer;transition:all 0.15s}
+.wrong-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+@media(max-width:600px){.tab{padding:10px 4px;font-size:12px;min-width:50px}.score-num{font-size:48px}.exam-timer{font-size:18px}.q-list-table{font-size:12px}.stem-cell{max-width:120px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>考试练赛</h1>
+  <p>顺序练习 · 模拟考试 · 题库管理 · 错题本</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="practice">顺序练习</div>
+  <div class="tab" data-tab="exam">模拟考试</div>
+  <div class="tab" data-tab="bank">题库管理</div>
+  <div class="tab" data-tab="wrong">错题本</div>
+</div>
+
+<div class="container" id="app"></div>
+
+<!-- 题目编辑模态框 -->
+<div class="modal-overlay hidden" id="qModal">
+  <div class="modal">
+    <h3 id="modalTitle">编辑题目</h3>
+    <div class="form-group"><label>题型</label><select id="qType" onchange="onTypeChange()"><option value="single">单选题</option><option value="multi">多选题</option><option value="judge">判断题</option><option value="fill">填空题</option><option value="essay">问答题</option></select></div>
+    <div class="form-group"><label>章节</label><input id="qChapter" placeholder="如：党章党规、党史知识"></div>
+    <div class="form-group"><label>题干</label><textarea id="qStem" rows="3" placeholder="请输入题目内容"></textarea></div>
+    <div class="form-group hidden" id="optGroup"><label id="optLabel">选项（每行一个，正确选项前加 *，多选题可标记多个正确项）</label><textarea id="qOptions" rows="4" placeholder="* 正确选项A&#10;* 正确选项B&#10;错误选项C&#10;错误选项D"></textarea></div>
+    <div class="form-group hidden" id="ansGroup"><label>参考答案</label><input id="qAnswer" placeholder="答案"></div>
+    <div class="form-group"><label>解析（选填）</label><textarea id="qAnalysis" rows="2" placeholder="答案解析"></textarea></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="saveQuestion()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 数据管理 ====================
+const KEYS = { bank: 'exam_bank', wrong: 'exam_wrong', history: 'exam_history' };
+
+function getData(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
+function setData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+// ==================== 默认样题 ====================
+const DEFAULT_BANK = [
+  { id: 1, type: 'single', chapter: '党章党规', stem: '中国共产党的根本宗旨是什么？', options: ['全心全意为人民服务', '实现共产主义', '坚持改革开放', '建设社会主义现代化'], answer: 0, analysis: '党章明确规定：全心全意为人民服务是党的根本宗旨。' },
+  { id: 2, type: 'single', chapter: '党章党规', stem: '党的最高理想和最终目标是什么？', options: ['全面建设小康社会', '实现中华民族伟大复兴', '实现共产主义', '建设社会主义现代化强国'], answer: 2, analysis: '党章：党的最高理想和最终目标是实现共产主义。' },
+  { id: 3, type: 'single', chapter: '党章党规', stem: '预备党员的预备期为多长时间？', options: ['六个月', '一年', '一年半', '两年'], answer: 1, analysis: '党章第七条规定，预备党员的预备期为一年。' },
+  { id: 4, type: 'single', chapter: '党史知识', stem: '中国共产党成立于哪一年？', options: ['1919年', '1921年', '1927年', '1949年'], answer: 1, analysis: '1921年7月，中国共产党第一次全国代表大会在上海召开。' },
+  { id: 5, type: 'single', chapter: '党史知识', stem: '遵义会议召开于哪一年？', options: ['1933年', '1934年', '1935年', '1936年'], answer: 2, analysis: '1935年1月，遵义会议确立了毛泽东在红军和党中央的领导地位。' },
+  { id: 6, type: 'single', chapter: '党史知识', stem: '中华人民共和国成立于哪一天？', options: ['1949年9月21日', '1949年10月1日', '1950年1月1日', '1949年9月30日'], answer: 1 },
+  { id: 7, type: 'single', chapter: '党建理论', stem: '四个意识不包括以下哪一项？', options: ['政治意识', '大局意识', '看齐意识', '服务意识'], answer: 3, analysis: '四个意识：政治意识、大局意识、核心意识、看齐意识。' },
+  { id: 8, type: 'single', chapter: '党建理论', stem: '"两个维护"中第二个维护是指坚决维护什么？', options: ['党的领导', '党中央权威和集中统一领导', '党的制度', '国家统一'], answer: 1 },
+  { id: 9, type: 'single', chapter: '党建理论', stem: '三会一课制度中"三会"不包括什么？', options: ['支部党员大会', '支委会', '民主生活会', '党小组会'], answer: 2, analysis: '三会：支部党员大会、支部委员会、党小组会。一课：党课。' },
+  { id: 10, type: 'single', chapter: '时政热点', stem: '党的二十大报告中提出的中国式现代化的本质要求共有几条？', options: ['5条', '7条', '9条', '10条'], answer: 2 },
+  { id: 31, type: 'multi', chapter: '党建理论', stem: '"四个全面"战略布局包括以下哪些？', options: ['全面建设社会主义现代化国家', '全面深化改革', '全面依法治国', '全面对外开放'], answer: [0,1,2], analysis: '四个全面：全面建设社会主义现代化国家、全面深化改革、全面依法治国、全面从严治党。' },
+  { id: 32, type: 'multi', chapter: '党章党规', stem: '以下哪些属于党员的权利？', options: ['表决权', '选举权', '被选举权', '决定权'], answer: [0,1,2], analysis: '党员有表决权、选举权和被选举权。决定权属于党组织的职权。' },
+  { id: 33, type: 'multi', chapter: '党史知识', stem: '以下哪些是党的二十大提出的"三个务必"？', options: ['务必不忘初心、牢记使命', '务必谦虚谨慎、艰苦奋斗', '务必敢于斗争、善于斗争', '务必解放思想、实事求是'], answer: [0,1,2] },
+  { id: 34, type: 'multi', chapter: '党建理论', stem: '增强"四个意识"具体指哪四个？', options: ['政治意识', '大局意识', '核心意识', '看齐意识'], answer: [0,1,2,3] },
+  { id: 35, type: 'multi', chapter: '党章党规', stem: '党的三大作风包括以下哪些？', options: ['理论联系实际', '密切联系群众', '批评与自我批评', '艰苦奋斗'], answer: [0,1,2] },
+  { id: 11, type: 'judge', chapter: '党章党规', stem: '党员如果没有正当理由，连续六个月不参加党的组织生活或不交纳党费，就被认为是自行脱党。', options: ['正确', '错误'], answer: 0, analysis: '党章第九条规定：党员如果没有正当理由，连续六个月不参加党的组织生活，或不交纳党费，或不做党所分配的工作，就被认为是自行脱党。' },
+  { id: 12, type: 'judge', chapter: '党章党规', stem: '留党察看最长不超过一年。', options: ['正确', '错误'], answer: 1, analysis: '党章规定留党察看最长不超过两年。' },
+  { id: 13, type: 'judge', chapter: '党史知识', stem: '八七会议确立了以毛泽东同志为核心的党中央的正确领导。', options: ['正确', '错误'], answer: 1, analysis: '八七会议（1927年）批判了陈独秀右倾机会主义错误，确定了土地革命和武装斗争的总方针。确立毛泽东领导核心地位的是遵义会议（1935年）。' },
+  { id: 14, type: 'judge', chapter: '党史知识', stem: '延安整风运动的基本方针是"惩前毖后，治病救人"。', options: ['正确', '错误'], answer: 0 },
+  { id: 15, type: 'judge', chapter: '党建理论', stem: '全面从严治党是"四个全面"战略布局的重要组成部分。', options: ['正确', '错误'], answer: 0 },
+  { id: 16, type: 'judge', chapter: '党建理论', stem: '党的组织原则是民主集中制。', options: ['正确', '错误'], answer: 0 },
+  { id: 17, type: 'judge', chapter: '时政热点', stem: '中国特色社会主义最本质的特征是人民当家作主。', options: ['正确', '错误'], answer: 1, analysis: '中国特色社会主义最本质的特征是中国共产党领导。' },
+  { id: 18, type: 'judge', chapter: '党章党规', stem: '发展党员必须经过党的支部，坚持个别吸收的原则。', options: ['正确', '错误'], answer: 0 },
+  { id: 19, type: 'fill', chapter: '党章党规', stem: '中国共产党以马克思列宁主义、毛泽东思想、邓小平理论、"三个代表"重要思想、科学发展观、______作为自己的行动指南。', options: [], answer: '习近平新时代中国特色社会主义思想' },
+  { id: 20, type: 'fill', chapter: '党史知识', stem: '长征途中，中共中央于1935年1月召开了著名的______会议，确立了毛泽东在党和红军中的领导地位。', options: [], answer: '遵义' },
+  { id: 21, type: 'fill', chapter: '党建理论', stem: '"四个自信"是指道路自信、理论自信、制度自信和______自信。', options: [], answer: '文化' },
+  { id: 22, type: 'fill', chapter: '党建理论', stem: '党的最大政治优势是______，党执政后的最大危险是脱离群众。', options: [], answer: '密切联系群众' },
+  { id: 23, type: 'fill', chapter: '党章党规', stem: '申请入党的人，要填写入党志愿书，要有两名______作介绍人。', options: [], answer: '正式党员' },
+  { id: 24, type: 'fill', chapter: '时政热点', stem: '"三个务必"中第三个务必是务必敢于斗争、______。', options: [], answer: '善于斗争' },
+  { id: 25, type: 'fill', chapter: '党建理论', stem: '"五位一体"总体布局中第五位是______建设。', options: [], answer: '生态文明' },
+  { id: 26, type: 'essay', chapter: '党建理论', stem: '简述中国共产党的初心和使命。', options: [], answer: '为中国人民谋幸福，为中华民族谋复兴' },
+  { id: 27, type: 'essay', chapter: '党建理论', stem: '简述"四个全面"的内容。', options: [], answer: '全面建设社会主义现代化国家、全面深化改革、全面依法治国、全面从严治党' },
+  { id: 28, type: 'essay', chapter: '党史知识', stem: '简要回答党的三大作风是什么。', options: [], answer: '理论联系实际、密切联系群众、批评与自我批评' },
+  { id: 29, type: 'essay', chapter: '党章党规', stem: '入党誓词的核心内容是什么？', options: [], answer: '拥护党的纲领，遵守党的章程，履行党员义务，执行党的决定，严守党的纪律，保守党的秘密，对党忠诚，积极工作，为共产主义奋斗终身，随时准备为党和人民牺牲一切，永不叛党' },
+  { id: 30, type: 'essay', chapter: '时政热点', stem: '简述中国式现代化的五个重要特征。', options: [], answer: '人口规模巨大的现代化；全体人民共同富裕的现代化；物质文明和精神文明相协调的现代化；人与自然和谐共生的现代化；走和平发展道路的现代化' },
+];
+
+function getBank() { let d = getData(KEYS.bank); if (!d.length) { d = DEFAULT_BANK; setData(KEYS.bank, d); } return d; }
+function saveBank(b) { setData(KEYS.bank, b); }
+function getWrongSet() { return getData(KEYS.wrong); }
+function addWrong(qid) { let w = getWrongSet(); if (!w.includes(qid)) { w.push(qid); setData(KEYS.wrong, w); } }
+function removeWrong(qid) { setData(KEYS.wrong, getWrongSet().filter(id => id !== qid)); }
+function getHistory() { return getData(KEYS.history); }
+function addHistory(h) { let hs = getHistory(); hs.unshift(h); if (hs.length > 100) hs.pop(); setData(KEYS.history, hs); }
+function clearHistory() { if (confirm('确认清除所有成绩记录？')) { setData(KEYS.history, []); render(); } }
+function clearWrongSet() { if (confirm('确认清除所有错题记录？')) { setData(KEYS.wrong, []); render(); } }
+
+// ==================== 全局状态 ====================
+let currentTab = 'practice';
+let practiceQuestions = []; let practiceIdx = 0; let practiceAnswered = false;
+let examQuestions = []; let examIdx = 0; let examAnswers = {}; let examStartTime = 0; let examSetting = { count: 20, time: 30 }; let examTimerInterval = null;
+let editId = null;
+
+// ==================== 辅助函数 ====================
+function shuffle(arr) { let a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { let j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fmtDate(d) { return new Date(d).toLocaleString('zh-CN'); }
+function typeName(t) { return { single: '单选题', multi: '多选题', judge: '判断题', fill: '填空题', essay: '问答题' }[t] || t; }
+function typeClass(t) { return { single: 'type-single', multi: 'type-multi', judge: 'type-judge', fill: 'type-fill', essay: 'type-essay' }[t] || ''; }
+function matchFill(user, answer) { if (!user || !answer) return 0; user = user.trim(); answer = answer.trim(); if (user === answer) return 1; let ks = answer.replace(/[，,、\s；;]+/g, ' ').split(' ').filter(k => k.length > 1); if (ks.length === 0) return user === answer ? 1 : 0; let hit = ks.filter(k => user.includes(k)).length; return hit / ks.length; }
+function arrEqual(a, b) { if (!a || !b) return false; if (a.length !== b.length) return false; let sa = [...a].sort(); let sb = [...b].sort(); return sa.every((v, i) => v === sb[i]); }
+
+// ==================== 渲染 ====================
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function render() { renderTabs(); if (currentTab === 'practice') renderPractice(); else if (currentTab === 'exam') renderExam(); else if (currentTab === 'bank') renderBank(); else if (currentTab === 'wrong') renderWrong(); }
+function renderTabs() { $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === currentTab)); }
+
+// ---- 错题本 ----
+function renderWrong() {
+  let bank = getBank(); let wrong = getWrongSet();
+  let wrongQs = bank.filter(q => wrong.includes(q.id));
+  let html = `<div class="toolbar">
+    <span style="font-size:16px;font-weight:600">错题本 - 共 ${wrongQs.length} 道错题</span>
+    <span style="color:#888;font-size:14px">${wrong.length} 道待复习</span>`;
+  if (wrong.length > 0) html += `<button class="btn btn-orange btn-sm" onclick="startWrongPractice()" style="margin-left:8px">专项练习</button>
+    <button class="btn btn-outline btn-sm" onclick="clearWrongSet()">清空错题</button>`;
+  html += `</div>`;
+
+  if (!wrongQs.length) {
+    html += `<div class="empty-state"><div class="icon">&#x1F3C6;</div><p>暂无错题，继续保持！</p></div>`;
+  } else {
+    html += `<div class="card"><table class="q-list-table"><thead><tr><th>#</th><th>题型</th><th>章节</th><th>题干</th><th>操作</th></tr></thead><tbody>`;
+    wrongQs.forEach((q, i) => {
+      html += `<tr><td>${i + 1}</td><td><span class="type-badge ${typeClass(q.type)}">${typeName(q.type)}</span></td><td>${q.chapter || ''}</td><td class="stem-cell" title="${escHtml(q.stem)}">${q.stem}</td>`;
+      html += `<td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="reviewWrongQ(${bank.indexOf(q)})">查看</button>
+        <button class="btn btn-success btn-sm" onclick="removeWrong(${q.id});render()">移出</button></td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  $('#app').innerHTML = html;
+}
+function startWrongPractice() { currentTab = 'practice'; let wrong = getWrongSet(); let bank = getBank(); practiceQuestions = bank.filter(q => wrong.includes(q.id)); practiceIdx = 0; practiceAnswered = false; practiceAnswers = { selected: -1, selectedMulti: [], userText: '', result: false }; render(); }
+function reviewWrongQ(bankIdx) { currentTab = 'practice'; practiceQuestions = [getBank()[bankIdx]]; practiceIdx = 0; practiceAnswered = false; practiceAnswers = { selected: -1, selectedMulti: [], userText: '', result: false }; render(); }
+
+// ---- 题库管理 ----
+function renderBank() {
+  let bank = getBank(); let wrong = getWrongSet();
+  let html = `<div class="toolbar">
+    <button class="btn btn-primary" onclick="openAddModal()">+ 添加题目</button>
+    <button class="btn btn-success" onclick="downloadTemplate()">下载Excel模板</button>
+    <button class="btn btn-outline" onclick="downloadJsonTemplate()">下载JSON模板</button>
+    <button class="btn btn-outline" onclick="exportBank()">导出题库</button>
+    <button class="btn btn-outline" onclick="document.getElementById('importTrigger').click()">导入题库</button>
+    <input type="file" id="importTrigger" class="hidden" accept=".json,.xlsx" onchange="importBank(event)">
+    <span style="margin-left:auto;color:#888;font-size:14px">${bank.length} 题 | 错题 ${wrong.length} | 单选 ${bank.filter(q=>q.type==='single').length} | 多选 ${bank.filter(q=>q.type==='multi').length} | 判断 ${bank.filter(q=>q.type==='judge').length} | 填空 ${bank.filter(q=>q.type==='fill').length} | 问答 ${bank.filter(q=>q.type==='essay').length}</span>
+  </div>
+  <textarea id="importArea" class="import-area hidden" placeholder="在此粘贴JSON..."></textarea>
+  <div id="importActions" class="hidden" style="margin-top:8px;display:flex;gap:8px">
+    <button class="btn btn-success btn-sm" onclick="doImport()">确认导入</button>
+    <button class="btn btn-outline btn-sm" onclick="cancelImport()">取消</button>
+  </div>`;
+
+  if (!bank.length) {
+    html += `<div class="empty-state"><div class="icon">&#x1F4ED;</div><p>题库为空</p>
+      <button class="btn btn-primary" onclick="openAddModal()">添加第一道题目</button>
+      <button class="btn btn-success" onclick="downloadTemplate()">下载Excel模板</button><br><br>
+      <button class="btn btn-outline" onclick="downloadJsonTemplate()">下载JSON模板</button></div>`;
+  } else {
+    html += `<div class="card"><table class="q-list-table"><thead><tr><th>#</th><th>题型</th><th>章节</th><th>题干</th><th>答案</th><th>操作</th></tr></thead><tbody>`;
+    bank.forEach((q, i) => {
+      let ansStr = '';
+      if (q.type === 'single' || q.type === 'judge') ansStr = typeof q.answer === 'number' ? (q.options[q.answer] || '') : q.answer;
+      else if (q.type === 'multi') ansStr = Array.isArray(q.answer) ? q.answer.map(a => 'ABCD'[a]).join('+') : '';
+      else ansStr = q.answer.length > 15 ? q.answer.substring(0, 15) + '...' : q.answer;
+      html += `<tr><td>${i + 1}</td><td><span class="type-badge ${typeClass(q.type)}">${typeName(q.type)}</span></td><td>${q.chapter || ''}</td><td class="stem-cell" title="${escHtml(q.stem)}">${q.stem}</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(ansStr)}</td>`;
+      html += `<td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="editQuestion(${i})">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="delQuestion(${i})">删</button></td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  $('#app').innerHTML = html;
+}
+
+function escHtml(s) { let d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ---- 顺序练习 ----
+function renderPractice() {
+  let bank = getBank(); let wrong = getWrongSet();
+  let chapters = [...new Set(bank.map(q => q.chapter).filter(Boolean))];
+  let html = `<div class="filter-bar">
+    <select id="pTypeFilter" onchange="startPractice()"><option value="">全部题型</option><option value="single">单选题</option><option value="multi">多选题</option><option value="judge">判断题</option><option value="fill">填空题</option><option value="essay">问答题</option></select>
+    <select id="pChapterFilter" onchange="startPractice()"><option value="">全部章节</option>${chapters.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+    <label><input type="checkbox" id="pWrongOnly" onchange="startPractice()"> 只练错题 (${wrong.length})</label>
+    <span style="margin-left:auto;font-size:14px;color:#888">${bank.length} 题</span>
+  </div>`;
+
+  if (!practiceQuestions.length) { html += `<div class="empty-state"><div class="icon">&#x1F4D6;</div><p>选择筛选条件后开始练习</p><button class="btn btn-primary" onclick="startPractice()">开始练习</button></div>`; }
+  else {
+    let q = practiceQuestions[practiceIdx];
+    html += `<div class="card"><div class="q-meta"><span class="type-badge ${typeClass(q.type)}">${typeName(q.type)}</span> | ${q.chapter || ''} | 第 ${practiceIdx + 1} / ${practiceQuestions.length} 题</div>
+      <div class="q-title">${practiceIdx + 1}. ${q.stem}</div>`;
+
+    if (q.type === 'single' || q.type === 'judge') {
+      html += `<div class="options">`;
+      q.options.forEach((opt, i) => {
+        let cls = 'opt';
+        if (practiceAnswered) {
+          if (i === q.answer) cls += ' correct';
+          else if (practiceAnswers.selected === i) cls += ' wrong';
+        } else if (practiceAnswers.selected === i) cls += ' selected';
+        html += `<div class="${cls}" onclick="${practiceAnswered ? '' : `selectOpt(${i})`}">${q.type === 'single' ? 'ABCD'[i] + '. ' : ''}${opt}</div>`;
+      });
+      html += `</div>`;
+    } else if (q.type === 'multi') {
+      html += `<div class="options"><p style="font-size:13px;color:#888;margin-bottom:8px">多选题，选择一个或多个选项</p>`;
+      q.options.forEach((opt, i) => {
+        let cls = 'opt';
+        if (practiceAnswered) {
+          let correctAnswers = Array.isArray(q.answer) ? q.answer : [q.answer];
+          if (correctAnswers.includes(i)) cls += ' correct';
+          else if (practiceAnswers.selectedMulti && practiceAnswers.selectedMulti.includes(i)) cls += ' wrong';
+        } else if (practiceAnswers.selectedMulti && practiceAnswers.selectedMulti.includes(i)) cls += ' selected';
+        html += `<div class="${cls}" onclick="${practiceAnswered ? '' : `toggleMulti(${i})`}">${'ABCD'[i]}. ${opt}</div>`;
+      });
+      if (!practiceAnswered) html += `<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="submitMulti()">提交答案</button>`;
+      html += `</div>`;
+    } else if (q.type === 'fill' || q.type === 'essay') {
+      html += `<textarea class="fill-input" id="fillAnswer" placeholder="请输入答案..." ${practiceAnswered ? 'disabled' : ''}>${practiceAnswers.userText || ''}</textarea>`;
+      if (!practiceAnswered) html += `<button class="btn btn-primary" style="margin-top:8px" onclick="submitFill()">提交答案</button>`;
+    }
+
+    if (practiceAnswered) {
+      let cls = practiceAnswers.result ? 'correct' : 'wrong';
+      let label = practiceAnswers.result ? '回答正确' : '回答错误';
+      html += `<div class="feedback ${cls}"><strong>${label}</strong>`;
+      if (q.type === 'single' || q.type === 'judge') html += `<br>正确答案：${q.options[q.answer]}`;
+      else if (q.type === 'multi') {
+        let corrects = Array.isArray(q.answer) ? q.answer : [q.answer];
+        html += `<br>正确答案：${corrects.map(i => q.options[i]).join('；')}`;
+        html += `<br>你的选择：${practiceAnswers.selectedMulti && practiceAnswers.selectedMulti.length ? practiceAnswers.selectedMulti.map(i => q.options[i]).join('；') : '(未选择)'}`;
+      } else { html += `<br>你的答案：${escHtml(practiceAnswers.userText || '(空)')}<br>参考答案：${q.answer}`; }
+      if (q.analysis) html += `<br>解析：${q.analysis}`;
+      html += `</div>`;
+    }
+
+    html += `</div><div style="display:flex;gap:10px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" ${practiceIdx === 0 ? 'disabled' : ''} onclick="changePractice(-1)">上一题</button>
+      <button class="btn btn-outline btn-sm" ${practiceIdx >= practiceQuestions.length - 1 ? 'disabled' : ''} onclick="changePractice(1)">下一题</button>
+      <button class="btn btn-outline btn-sm" onclick="resetPractice()">重新开始</button>
+    </div>`;
+  }
+  $('#app').innerHTML = html;
+}
+
+let practiceAnswers = { selected: -1, selectedMulti: [], userText: '', result: false };
+function startPractice() {
+  let bank = getBank(); let wrong = getWrongSet();
+  let tf = $('#pTypeFilter')?.value || ''; let cf = $('#pChapterFilter')?.value || ''; let wo = $('#pWrongOnly')?.checked || false;
+  let qs = bank;
+  if (tf) qs = qs.filter(q => q.type === tf);
+  if (cf) qs = qs.filter(q => q.chapter === cf);
+  if (wo) qs = qs.filter(q => wrong.includes(q.id));
+  practiceQuestions = qs; practiceIdx = 0; practiceAnswered = false; practiceAnswers = { selected: -1, selectedMulti: [], userText: '', result: false };
+  render();
+}
+function selectOpt(i) { practiceAnswers.selected = i; let q = practiceQuestions[practiceIdx]; practiceAnswers.result = (i === q.answer); practiceAnswered = true; if (!practiceAnswers.result) addWrong(q.id); else removeWrong(q.id); render(); }
+function toggleMulti(i) {
+  if (!practiceAnswers.selectedMulti) practiceAnswers.selectedMulti = [];
+  let idx = practiceAnswers.selectedMulti.indexOf(i);
+  if (idx >= 0) practiceAnswers.selectedMulti.splice(idx, 1); else practiceAnswers.selectedMulti.push(i);
+  render();
+}
+function submitMulti() {
+  let q = practiceQuestions[practiceIdx];
+  let correctAnswers = Array.isArray(q.answer) ? q.answer : [q.answer];
+  practiceAnswers.result = arrEqual(practiceAnswers.selectedMulti, correctAnswers);
+  practiceAnswered = true;
+  if (!practiceAnswers.result) addWrong(q.id); else removeWrong(q.id);
+  render();
+}
+function submitFill() { let t = $('#fillAnswer').value; practiceAnswers.userText = t; let q = practiceQuestions[practiceIdx]; if (q.type === 'fill') practiceAnswers.result = matchFill(t, q.answer) >= 0.7; else practiceAnswers.result = matchFill(t, q.answer) >= 0.4; practiceAnswered = true; if (!practiceAnswers.result) addWrong(q.id); else removeWrong(q.id); render(); }
+function changePractice(d) { practiceIdx += d; practiceAnswered = false; practiceAnswers = { selected: -1, selectedMulti: [], userText: '', result: false }; render(); }
+function resetPractice() { practiceQuestions = []; practiceIdx = 0; practiceAnswered = false; practiceAnswers = { selected: -1, selectedMulti: [], userText: '', result: false }; render(); }
+
+// ---- 模拟考试 ----
+function renderExam() {
+  let inExam = examQuestions.length > 0 && examIdx < examQuestions.length;
+  if (inExam) return renderExamAnswering();
+  else if (examAnswers && Object.keys(examAnswers).length > 0 && examQuestions.length > 0) return renderExamResult();
+  else return renderExamSetup();
+}
+function renderExamSetup() {
+  let history = getHistory();
+  let html = `<div class="card"><h3>模拟考试设置</h3>
+    <div class="form-group"><label>题目数量</label><input type="number" id="examCount" value="${examSetting.count}" min="5" max="100"></div>
+    <div class="form-group"><label>考试时间（分钟）</label><input type="number" id="examTime" value="${examSetting.time}" min="5" max="180"></div>
+    <button class="btn btn-primary" onclick="startExam()">开始考试</button>
+  </div>`;
+
+  if (history.length) {
+    html += `<div class="card"><h3>历史成绩 <button class="btn btn-danger btn-sm" onclick="clearHistory()" style="float:right">清空记录</button></h3>`;
+    html += `<div style="overflow-x:auto"><table class="q-list-table"><thead><tr><th>#</th><th>时间</th><th>成绩</th><th>正确率</th><th>用时</th><th>详情</th></tr></thead><tbody>`;
+    history.forEach((h, i) => {
+      let pct = h.total > 0 ? Math.round(h.correct / h.total * 100) : 0;
+      let cls = pct >= 80 ? '#27ae60' : (pct >= 60 ? '#e67e22' : '#e74c3c');
+      html += `<tr><td>${i + 1}</td><td>${fmtDate(h.time)}</td><td style="color:${cls};font-weight:700;font-size:16px">${h.score}分</td><td>${h.correct}/${h.total} (${pct}%)</td><td>${fmtDuration(h.duration)}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="reviewHistory(${i})">查看</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteHistory(${i})">删</button></td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+  $('#app').innerHTML = html;
+}
+function startExam() {
+  let cnt = parseInt($('#examCount').value) || 20; let t = parseInt($('#examTime').value) || 30;
+  examSetting = { count: cnt, time: t };
+  let bank = getBank(); if (bank.length < cnt) cnt = bank.length;
+  examQuestions = shuffle(bank).slice(0, cnt);
+  examAnswers = {}; examIdx = 0; examStartTime = Date.now();
+  let totalSec = t * 60;
+  examTimerInterval = setInterval(() => { let elapsed = Math.floor((Date.now() - examStartTime) / 1000); let left = totalSec - elapsed; if (left <= 0) { submitExam(); return; } let el = $('#examTimer'); if (el) { el.textContent = fmtDuration(left * 1000); if (left < 300) el.classList.add('warning'); } }, 1000);
+  render();
+}
+function renderExamAnswering() {
+  let q = examQuestions[examIdx]; let ans = examAnswers[examIdx];
+  let totalSec = examSetting.time * 60; let elapsed = Math.floor((Date.now() - examStartTime) / 1000); let left = Math.max(0, totalSec - elapsed);
+  let answeredCount = Object.keys(examAnswers).length;
+  let html = `<div class="exam-header">
+    <span>第 ${examIdx + 1} / ${examQuestions.length} 题</span>
+    <span id="examTimer" class="exam-timer${left < 300 ? ' warning' : ''}">${fmtDuration(left * 1000)}</span>
+    <span>已答 ${answeredCount} 题</span>
+  </div>
+  <div class="grid">${examQuestions.map((eq, i) => `<div class="grid-item${i === examIdx ? ' current' : ''}${examAnswers[i] !== undefined ? ' answered' : ''}" onclick="examIdx=${i};render()">${i + 1}</div>`).join('')}</div>
+  <div class="card">
+    <div class="q-meta"><span class="type-badge ${typeClass(q.type)}">${typeName(q.type)}</span> | ${q.chapter || ''}</div>
+    <div class="q-title">${examIdx + 1}. ${q.stem}</div>`;
+
+  if (q.type === 'single' || q.type === 'judge') {
+    html += `<div class="options">`;
+    q.options.forEach((opt, i) => {
+      let sel = ans !== undefined ? ans.selected : -1;
+      html += `<div class="opt${sel === i ? ' selected' : ''}" onclick="examAnswers[${examIdx}]={selected:${i}};render()">${q.type === 'single' ? 'ABCD'[i] + '. ' : ''}${opt}</div>`;
+    });
+    html += `</div>`;
+  } else if (q.type === 'multi') {
+    let sel = ans !== undefined && ans.selectedMulti ? ans.selectedMulti : [];
+    html += `<div class="options"><p style="font-size:13px;color:#888;margin-bottom:8px">多选题，选择一个或多个选项</p>`;
+    q.options.forEach((opt, i) => {
+      html += `<div class="opt${sel.includes(i) ? ' selected' : ''}" onclick="toggleExamMulti(${examIdx},${i})">${'ABCD'[i]}. ${opt}</div>`;
+    });
+    html += `</div>`;
+  } else if (q.type === 'fill' || q.type === 'essay') {
+    html += `<textarea class="fill-input" id="examText" oninput="examAnswers[${examIdx}]={selected:-1,text:this.value}">${ans?.text || ''}</textarea>`;
+  }
+
+  html += `</div>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <button class="btn btn-outline" ${examIdx === 0 ? 'disabled' : ''} onclick="examIdx--;render()">上一题</button>
+    <button class="btn btn-outline" ${examIdx >= examQuestions.length - 1 ? 'disabled' : ''} onclick="examIdx++;render()">下一题</button>
+    <button class="btn btn-primary" onclick="submitExam()">交卷</button>
+  </div>`;
+  $('#app').innerHTML = html;
+  let ta = $('#examText'); if (ta) { ta.scrollIntoView({ behavior: 'smooth' }); }
+}
+function toggleExamMulti(qIdx, optIdx) {
+  if (!examAnswers[qIdx]) examAnswers[qIdx] = { selectedMulti: [] };
+  if (!examAnswers[qIdx].selectedMulti) examAnswers[qIdx].selectedMulti = [];
+  let idx = examAnswers[qIdx].selectedMulti.indexOf(optIdx);
+  if (idx >= 0) examAnswers[qIdx].selectedMulti.splice(idx, 1); else examAnswers[qIdx].selectedMulti.push(optIdx);
+  render();
+}
+function submitExam() {
+  if (examTimerInterval) { clearInterval(examTimerInterval); examTimerInterval = null; }
+  let total = examQuestions.length; let correct = 0; let details = [];
+  examQuestions.forEach((q, i) => {
+    let ans = examAnswers[i];
+    if (q.type === 'single' || q.type === 'judge') {
+      if (ans !== undefined && ans.selected === q.answer) { correct++; details.push({ correct: true }); }
+      else { addWrong(q.id); details.push({ correct: false }); }
+    } else if (q.type === 'multi') {
+      let userMulti = ans?.selectedMulti || [];
+      let correctMulti = Array.isArray(q.answer) ? q.answer : [q.answer];
+      if (arrEqual(userMulti, correctMulti)) { correct++; details.push({ correct: true, multi: userMulti }); }
+      else { addWrong(q.id); details.push({ correct: false, multi: userMulti }); }
+    } else {
+      let txt = ans?.text || '';
+      let score = matchFill(txt, q.answer);
+      let ok = q.type === 'fill' ? score >= 0.7 : score >= 0.4;
+      if (ok) correct++; else addWrong(q.id);
+      details.push({ correct: ok, text: txt });
+    }
+  });
+  let duration = Date.now() - examStartTime;
+  let score = total > 0 ? Math.round(correct / total * 100) : 0;
+  addHistory({ time: Date.now(), score, total, correct, duration, typeCounts: examQuestions.reduce((acc, q) => { acc[q.type] = (acc[q.type] || 0) + 1; return acc; }, {}) });
+  examIdx = examQuestions.length;
+  examAnswers = { __score: score, __total: total, __correct: correct, __duration: duration, __details: details };
+  render();
+}
+function renderExamResult() {
+  let { __score: score, __total: total, __correct: correct, __duration: duration, __details: details } = examAnswers;
+  let html = `<div class="card score-card">
+    <div class="score-label">考试成绩</div><div class="score-num">${score}</div><div class="score-label">分</div>
+    <div class="score-detail">
+      <div class="score-box"><div class="val">${correct}/${total}</div><div class="lbl">正确/总题数</div></div>
+      <div class="score-box"><div class="val">${fmtDuration(duration)}</div><div class="lbl">用时</div></div>
+      <div class="score-box"><div class="val">${total > 0 ? Math.round(correct/total*100) : 0}%</div><div class="lbl">正确率</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="reviewExam()" style="margin:0 6px">查看详情</button>
+    <button class="btn btn-outline" onclick="examQuestions=[];examAnswers={};render()" style="margin:0 6px">再来一次</button>
+  </div>`;
+  $('#app').innerHTML = html;
+}
+function reviewExam() {
+  let details = examAnswers.__details || [];
+  let html = `<div class="card"><h3>考试详情回顾</h3>`;
+  examQuestions.forEach((q, i) => {
+    let d = details[i]; let ans = examAnswers[i];
+    let icon = d.correct ? '&#x2705;' : '&#x274C;';
+    let cls = d.correct ? 'correct' : 'wrong';
+    html += `<div class="feedback ${cls}" style="margin-bottom:12px"><strong>${icon} 第${i + 1}题 [${typeName(q.type)}]</strong> ${q.stem}`;
+    if (q.type === 'single' || q.type === 'judge') html += `<br>正确答案：${q.options[q.answer]}`;
+    else if (q.type === 'multi') {
+      let corrects = Array.isArray(q.answer) ? q.answer : [q.answer];
+      html += `<br>正确答案：${corrects.map(idx => q.options[idx]).join('；')}`;
+      html += `<br>你的选择：${d.multi && d.multi.length ? d.multi.map(idx => q.options[idx]).join('；') : '(未选择)'}`;
+    } else html += `<br>你的答案：${escHtml(d.text || '(空)')}<br>参考答案：${q.answer}`;
+    if (q.analysis) html += `<br>&#x1F4D6; 解析：${q.analysis}`;
+    html += `</div>`;
+  });
+  html += `<button class="btn btn-outline" onclick="examQuestions=[];examAnswers={};render()">返回</button></div>`;
+  $('#app').innerHTML = html;
+}
+function reviewHistory(i) {
+  let h = getHistory()[i]; if (!h) return;
+  alert(`成绩：${h.score}分 | 正确：${h.correct}/${h.total}\n用时：${fmtDuration(h.duration)}\n时间：${fmtDate(h.time)}\n${h.typeCounts ? '题型分布：'+JSON.stringify(h.typeCounts) : ''}`);
+}
+function deleteHistory(i) { let hs = getHistory(); hs.splice(i, 1); setData(KEYS.history, hs); render(); }
+function fmtDuration(ms) { let s = Math.floor(ms / 1000); let m = Math.floor(s / 60); s = s % 60; return m > 0 ? `${m}分${s}秒` : `${s}秒`; }
+
+// ---- 题目编辑 ----
+function openAddModal() { editId = null; $('#modalTitle').textContent = '添加题目'; $('#qType').value = 'single'; $('#qChapter').value = ''; $('#qStem').value = ''; $('#qOptions').value = ''; $('#qAnswer').value = ''; $('#qAnalysis').value = ''; onTypeChange(); $('#qModal').classList.remove('hidden'); }
+function editQuestion(i) {
+  let q = getBank()[i]; editId = i;
+  $('#modalTitle').textContent = '编辑题目'; $('#qType').value = q.type; $('#qChapter').value = q.chapter || ''; $('#qStem').value = q.stem; $('#qAnalysis').value = q.analysis || '';
+  if (q.type === 'multi') {
+    let correctAnswers = Array.isArray(q.answer) ? q.answer : [q.answer];
+    $('#qOptions').value = q.options ? q.options.map((o, j) => (correctAnswers.includes(j) ? '* ' : '') + o).join('\n') : '';
+  } else {
+    $('#qOptions').value = q.options ? q.options.map((o, j) => (j === q.answer ? '* ' : '') + o).join('\n') : '';
+  }
+  $('#qAnswer').value = (typeof q.answer === 'number' || Array.isArray(q.answer)) ? '' : q.answer;
+  onTypeChange(); $('#qModal').classList.remove('hidden');
+}
+function closeModal() { $('#qModal').classList.add('hidden'); }
+function onTypeChange() {
+  let t = $('#qType').value;
+  let showOpts = t === 'single' || t === 'multi' || t === 'judge';
+  let showAns = t === 'fill' || t === 'essay';
+  $('#optGroup').classList.toggle('hidden', !showOpts);
+  $('#ansGroup').classList.toggle('hidden', !showAns);
+  if (t === 'multi') $('#optLabel').textContent = '选项（每行一个，正确选项前加 * 号，可标记多个正确项）';
+  else $('#optLabel').textContent = '选项（每行一个，正确选项前加 * 号）';
+}
+function saveQuestion() {
+  let t = $('#qType').value; let ch = $('#qChapter').value.trim(); let stem = $('#qStem').value.trim(); let analysis = $('#qAnalysis').value.trim();
+  if (!stem) { alert('请输入题干'); return; }
+  let q = { id: editId !== null ? getBank()[editId]?.id : (Date.now() % 1000000), type: t, chapter: ch, stem, options: [], answer: t === 'multi' ? [] : (t === 'fill' || t === 'essay' ? '' : 0), analysis };
+  if (t === 'single' || t === 'multi' || t === 'judge') {
+    let lines = ($('#qOptions').value || '').split('\n').map(s => s.trim());
+    let opts = lines.map(s => s.replace(/^\*\s*/, '').trim()).filter(Boolean);
+    if (opts.length < 2) { alert('请至少输入2个选项'); return; }
+    q.options = opts;
+    if (t === 'multi') {
+      let correctIndices = []; lines.forEach((s, idx) => { if (s.startsWith('*')) { let realIdx = lines.filter((_, j) => j < idx).map(l => l.replace(/^\*\s*/, '').trim()).filter(Boolean).length; correctIndices.push(realIdx); } });
+      q.answer = correctIndices;
+    } else {
+      let ansIdx = lines.findIndex(s => s.startsWith('*'));
+      let realIdx = 0; for (let j = 0; j <= ansIdx; j++) { let stripped = lines[j].replace(/^\*\s*/, '').trim(); if (stripped) { if (j === ansIdx) break; realIdx++; } }
+      q.answer = realIdx >= 0 ? realIdx : 0;
+    }
+  } else { let a = $('#qAnswer').value.trim(); if (!a) { alert('请输入参考答案'); return; } q.answer = a; }
+  let bank = getBank();
+  if (editId !== null) bank[editId] = q; else bank.push(q);
+  saveBank(bank); closeModal(); render();
+}
+function delQuestion(i) { if (!confirm('确认删除？')) return; let bank = getBank(); removeWrong(bank[i].id); bank.splice(i, 1); saveBank(bank); render(); }
+
+// ---- 导入导出 ----
+function exportBank() { let blob = new Blob([JSON.stringify(getBank(), null, 2)], { type: 'application/json' }); let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'exam_bank_backup.json'; a.click(); }
+function downloadTemplate() {
+  let template = [
+    { "id": 1, "type": "single", "chapter": "示例章节", "stem": "单选题示例题目？", "options": ["正确选项", "错误选项A", "错误选项B", "错误选项C"], "answer": 0, "analysis": "答案解析（选填）" },
+    { "id": 2, "type": "multi", "chapter": "示例章节", "stem": "多选题示例题目？", "options": ["正确选项A", "正确选项B", "错误选项C", "错误选项D"], "answer": [0, 1], "analysis": "answer 为数组，表示第0和第1项正确" },
+    { "id": 3, "type": "judge", "chapter": "示例章节", "stem": "判断题示例题目。", "options": ["正确", "错误"], "answer": 0, "analysis": "0=正确, 1=错误" },
+    { "id": 4, "type": "fill", "chapter": "示例章节", "stem": "填空题示例：中华人民共和国的首都是______。", "options": [], "answer": "北京", "analysis": "关键词模糊匹配判分" },
+    { "id": 5, "type": "essay", "chapter": "示例章节", "stem": "简答题示例：简述科学发展观的内涵。", "options": [], "answer": "第一要义是发展，核心是以人为本，基本要求是全面协调可持续，根本方法是统筹兼顾。", "analysis": "问答题按关键词命中率判分" }
+  ];
+  let blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' }); let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'exam_bank_template.json'; a.click();
+}
+function importBank(e) {
+  let f = e.target.files[0]; if (!f) return;
+  let name = f.name.toLowerCase();
+  // Excel import
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    let reader = new FileReader();
+    reader.onload = function() {
+      try {
+        let wb = XLSX.read(reader.result, {type: 'array'});
+        let ws = wb.Sheets[wb.SheetNames[wb.SheetNames.length - 1]];
+        if (!ws) { alert('未找到有效工作表'); return; }
+        let rows = XLSX.utils.sheet_to_json(ws, {header: 1})
+          .filter(r => r[0] != null && r[0] !== 'ID' && r[0] !== '' && r[1] != null);
+        let bank = [];
+        rows.forEach(r => {
+          let type = String(r[1] || '').trim().toLowerCase();
+          if (!['single','multi','judge','fill','essay'].includes(type)) return;
+          let stem = String(r[3] || '').trim();
+          if (!stem) return;
+          let opts = String(r[4] || '').split('\n').map(s => s.trim()).filter(Boolean);
+          let ansStr = String(r[5] || '').trim();
+          let answer;
+          if (type === 'single' || type === 'judge') {
+            let n = parseInt(ansStr);
+            answer = !isNaN(n) ? Math.max(0, n - 1) : 0;
+          } else if (type === 'multi') {
+            answer = ansStr.split(/[,，]/).map(s => Math.max(0, parseInt(s.trim()) - 1)).filter(n => !isNaN(n) && n >= 0);
+          } else {
+            answer = ansStr;
+          }
+          let q = {
+            id: Date.now() % 1000000 + Math.floor(Math.random() * 100000),
+            type: type,
+            chapter: String(r[2] || '').trim(),
+            stem: stem,
+            options: opts,
+            answer: answer,
+            analysis: String(r[6] || '').trim()
+          };
+          bank.push(q);
+        });
+        if (!bank.length) { alert('未解析到有效题目，请检查格式（题型代号和题干必填）'); return; }
+        saveBank(bank);
+        alert('Excel导入成功！共 ' + bank.length + ' 题');
+        render();
+      } catch(e) { alert('Excel解析失败: ' + e.message); }
+    };
+    reader.readAsArrayBuffer(f);
+    e.target.value = '';
+    return;
+  }
+  // JSON import
+  let reader = new FileReader();
+  reader.onload = function() {
+    try {
+      let d = JSON.parse(reader.result);
+      if (!Array.isArray(d)) throw new Error();
+      saveBank(d);
+      alert('JSON导入成功！共 ' + d.length + ' 题');
+      render();
+    } catch { alert('JSON 格式错误，请检查文件'); }
+  };
+  reader.readAsText(f);
+  e.target.value = '';
+}
+function doImport() { let t = $('#importArea').value.trim(); try { let d = JSON.parse(t); if (!Array.isArray(d)) throw new Error(); saveBank(d); alert('导入成功！共 ' + d.length + ' 题'); $('#importArea').value = ''; $('#importArea').classList.add('hidden'); $('#importActions').classList.add('hidden'); render(); } catch { alert('JSON 格式错误，请检查'); } }
+function downloadJsonTemplate() {
+  let t = [
+    { id: 1, type: 'single', chapter: '示例章节', stem: '单选题示例题目？', options: ['正确选项', '错误选项1', '错误选项2', '错误选项3'], answer: 0, analysis: '选填' },
+    { id: 2, type: 'multi', chapter: '示例章节', stem: '多选题示例题目？', options: ['正确选项A', '正确选项B', '错误选项C', '错误选项D'], answer: [0, 1], analysis: 'answer为数组' },
+    { id: 3, type: 'judge', chapter: '示例章节', stem: '判断题示例题目。', options: ['正确', '错误'], answer: 0 },
+    { id: 4, type: 'fill', chapter: '示例章节', stem: '填空题示例：首都是______。', options: [], answer: '北京' },
+    { id: 5, type: 'essay', chapter: '示例章节', stem: '简答题示例题目？', options: [], answer: '参考答案关键词' }
+  ];
+  let blob = new Blob([JSON.stringify(t, null, 2)], { type: 'application/json' });
+  let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'exam_bank_template.json'; a.click();
+}
+function cancelImport() { $('#importArea').classList.add('hidden'); $('#importActions').classList.add('hidden'); }
+
+// ---- 标签切换 ----
+$$('.tab').forEach(t => t.addEventListener('click', function() { currentTab = this.dataset.tab; practiceQuestions = []; examQuestions = []; examAnswers = {}; if (examTimerInterval) { clearInterval(examTimerInterval); examTimerInterval = null; } render(); }));
+document.getElementById('qType').addEventListener('change', onTypeChange);
+
+// ---- 初始启动 ----
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(() => console.log('[PWA] Ready')).catch(() => {});
+}
+render();
+</script>
+</body>
+</html>
