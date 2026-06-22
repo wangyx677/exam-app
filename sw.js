@@ -1,5 +1,5 @@
 ﻿// 鑰冭瘯缁冭禌 Service Worker - 绂荤嚎鏀寔
-const CACHE_NAME = 'exam-v3';
+const CACHE_NAME = 'exam-v4';
 const CDN_XLSX = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
 
 // 瀹夎锛氶缂撳瓨鏈湴鏂囦欢 + CDN
