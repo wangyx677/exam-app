@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>测试</title>
+<style>
+body{font-family:sans-serif;margin:20px}
+.tab{padding:10px 20px;margin:4px;border:2px solid #764ba2;border-radius:6px;cursor:pointer;display:inline-block;background:#fff;color:#764ba2;font-weight:600}
+.tab.active{background:#764ba2;color:#fff}
+.card{background:#fff;border-radius:8px;padding:20px;margin:10px 0;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+</style>
+</head>
+<body>
+<h2>测试页面 - 考试练赛</h2>
+<div id="tabs">
+  <span class="tab active" data-tab="practice">顺序练习</span>
+  <span class="tab" data-tab="exam">模拟考试</span>
+  <span class="tab" data-tab="bank">题库管理</span>
+  <span class="tab" data-tab="wrong">错题本</span>
+</div>
+<div id="app"></div>
+
+<script>
+var currentTab = 'practice';
+
+function render() {
+  document.querySelectorAll('.tab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.tab === currentTab);
+  });
+  var app = document.getElementById('app');
+
+  if (currentTab === 'practice') {
+    app.innerHTML = '<div class="card"><h3>顺序练习</h3><p>这是练习页面</p><button onclick="alert(\'按钮可用!\')" style="padding:10px 20px;background:#764ba2;color:#fff;border:none;border-radius:6px;cursor:pointer">点击测试</button></div>';
+  } else if (currentTab === 'exam') {
+    app.innerHTML = '<div class="card"><h3>模拟考试</h3><p>这是考试页面</p></div>';
+  } else if (currentTab === 'bank') {
+    app.innerHTML = '<div class="card"><h3>题库管理</h3><p>这是题库页面</p></div>';
+  } else if (currentTab === 'wrong') {
+    app.innerHTML = '<div class="card"><h3>错题本</h3><p>这是错题页面</p></div>';
+  }
+}
+
+document.querySelectorAll('.tab').forEach(function(t) {
+  t.addEventListener('click', function() {
+    currentTab = this.dataset.tab;
+    render();
+  });
+});
+
+render();
+console.log('Test page loaded OK');
+</script>
+</body>
+</html>
